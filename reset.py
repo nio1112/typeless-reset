@@ -100,7 +100,7 @@ def delete_dir(path, description):
         log(f"{description} not found (already clean)")
 
 
-def main():
+def main(argv=None):
     log(f"Typeless device identifier reset tool ({sys.platform})")
     print("-" * 50)
 
@@ -172,7 +172,8 @@ def main():
     print("-" * 50)
     log("Done! Typeless will generate a new device identifier on next login.")
     log("You'll need to log in again in the Typeless app.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

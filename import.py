@@ -25,6 +25,8 @@ import requests
 
 from crypto_utils import (
     API_BASE,
+    IS_MAC,
+    IS_WIN,
     TYPELESS_DIR,
     build_security_headers,
     decrypt_user_data,
@@ -40,36 +42,54 @@ def get_proxy():
 def kill_typeless():
     """Ensure Typeless is not running before modifying local data."""
     try:
-        result = subprocess.run(
-            ["pgrep", "-f", "Typeless.app"],
-            capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            print("[kill] Typeless is not running")
-            return
-
-        print("[kill] Stopping Typeless...")
-        subprocess.run(
-            ["osascript", "-e", 'quit app "Typeless"'],
-            capture_output=True, timeout=5
-        )
-        # Wait for it to actually quit
-        for _ in range(10):
-            check = subprocess.run(
+        if IS_MAC:
+            result = subprocess.run(
                 ["pgrep", "-f", "Typeless.app"],
                 capture_output=True, text=True
             )
-            if check.returncode != 0:
-                print("[kill] Typeless stopped")
+            if result.returncode != 0:
+                print("[kill] Typeless is not running")
                 return
-            time.sleep(0.5)
 
-        # Force kill if still running
-        pids = result.stdout.strip().split("\n")
-        for pid in pids:
-            if pid:
-                os.kill(int(pid), signal.SIGKILL)
-        print("[kill] Typeless force killed")
+            print("[kill] Stopping Typeless...")
+            subprocess.run(
+                ["osascript", "-e", 'quit app "Typeless"'],
+                capture_output=True, timeout=5
+            )
+            # Wait for it to actually quit
+            for _ in range(10):
+                check = subprocess.run(
+                    ["pgrep", "-f", "Typeless.app"],
+                    capture_output=True, text=True
+                )
+                if check.returncode != 0:
+                    print("[kill] Typeless stopped")
+                    return
+                time.sleep(0.5)
+
+            # Force kill if still running
+            pids = result.stdout.strip().split("\n")
+            for pid in pids:
+                if pid:
+                    os.kill(int(pid), signal.SIGKILL)
+            print("[kill] Typeless force killed")
+            return
+
+        if IS_WIN:
+            result = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq Typeless.exe"],
+                capture_output=True, text=True
+            )
+            if "Typeless.exe" not in result.stdout:
+                print("[kill] Typeless is not running")
+                return
+
+            print("[kill] Stopping Typeless...")
+            subprocess.run(["taskkill", "/F", "/IM", "Typeless.exe", "/T"], capture_output=True)
+            print("[kill] Typeless stopped")
+            return
+
+        print("[kill] Unsupported platform, skipping process stop")
     except Exception as e:
         print(f"[kill] Warning: {e}")
 
@@ -230,17 +250,17 @@ def restore_recordings(backup_dir):
         print(f"[rec] Copied {ogg_count} .ogg files")
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Import Typeless data into current account")
     parser.add_argument("backup_dir", help="Path to the backup directory")
     parser.add_argument("--dict-only", action="store_true", help="Only import dictionary")
     parser.add_argument("--db-only", action="store_true", help="Only migrate database")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     backup_dir = args.backup_dir
     if not os.path.isdir(backup_dir):
         print(f"Error: {backup_dir} is not a directory", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     kill_typeless()
 
@@ -249,11 +269,11 @@ def main():
 
     if args.db_only:
         migrate_database(backup_dir)
-        return
+        return 0
 
     if args.dict_only:
         import_dictionary(backup_dir)
-        return
+        return 0
 
     # Full import
     import_dictionary(backup_dir)
@@ -273,7 +293,8 @@ def main():
     total = cur.fetchone()[0]
     conn.close()
     print(f"Done! Account: {user['email']}, History records: {total}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

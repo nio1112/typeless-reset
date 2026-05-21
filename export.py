@@ -17,7 +17,6 @@ import json
 import os
 import shutil
 import sqlite3
-import sys
 import time
 
 import requests
@@ -63,8 +62,7 @@ def export_dictionary(backup_dir):
         data = resp.json()
 
         if data.get("status") != "OK":
-            print(f"[dict] Error: {data}", file=sys.stderr)
-            sys.exit(1)
+            raise RuntimeError(f"[dict] Error: {data}")
 
         words = data["data"].get("words", [])
         total = data["data"].get("total_count", 0)
@@ -148,10 +146,10 @@ def export_local(backup_dir):
     return old_user_id
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Export all Typeless data")
     parser.add_argument("--output", "-o", help="Output directory (default: ./backup_<timestamp>)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_dir = args.output or os.path.join(os.getcwd(), f"backup_{timestamp}")
@@ -180,10 +178,11 @@ def main():
     print(f"Done! All data exported to {backup_dir}/")
     print()
     print("Next steps:")
-    print("  1. bash reset-device-macos.sh")
+    print("  1. python reset.py")
     print("  2. Login to NEW account in Typeless")
-    print(f"  3. uv run python3 import.py {backup_dir}")
+    print(f"  3. python import.py {backup_dir}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

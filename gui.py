@@ -1,5 +1,7 @@
+import contextlib
+import importlib
 import os
-import subprocess
+import traceback
 import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -75,38 +77,23 @@ class TypelessGUI:
         self.log_text.config(state="disabled")
         self.root.update_idletasks()
 
-    def run_command(self, script_name, *args):
+    def run_command(self, module_name, *args):
         try:
-            # Direct execution using current python interpreter to avoid uv environment issues
-            # Since gui.py is already running inside 'uv run', sys.executable is the venv python.
-            cmd = [sys.executable, script_name] + list(args)
-            
-            # Use subprocess.PIPE to capture output line by line
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-                universal_newlines=True
-            )
-            
-            if process.stdout:
-                for line in process.stdout:
-                    self.log(line.strip())
-            
-            process.wait()
-            return process.returncode == 0
+            module = importlib.import_module(module_name)
+            stream = _LogStream(self.log)
+            with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
+                exit_code = module.main(list(args))
+            stream.flush()
+            return (0 if exit_code is None else exit_code) == 0
         except Exception as e:
             self.log(f"错误: {str(e)}")
+            self.log(traceback.format_exc())
             return False
 
     def run_export(self):
         if messagebox.askyesno("确认", "是否立即备份所有词典与历史记录？"):
             self.log("正在开始备份...")
-            if self.run_command("export.py"):
+            if self.run_command("export"):
                 messagebox.showinfo("成功", "备份完成！请检查当前目录下的 backup_ 文件夹。")
             else:
                 messagebox.showerror("错误", "备份失败，请查看日志详情。")
@@ -114,7 +101,7 @@ class TypelessGUI:
     def run_reset(self):
         if messagebox.askyesno("警告", "这将强制关闭 Typeless 并重置设备 ID。是否继续？"):
             self.log("正在重置设备...")
-            if self.run_command("reset.py"):
+            if self.run_command("reset"):
                 messagebox.showinfo("成功", "设备重置成功！请现在启动 Typeless 并登录【新账号】。")
             else:
                 messagebox.showerror("错误", "重置失败，请查看日志详情。")
@@ -126,10 +113,30 @@ class TypelessGUI:
             
         if messagebox.askyesno("确认", f"是否将数据从 {os.path.basename(backup_dir)} 恢复到当前登录的账号？"):
             self.log(f"正在从 {backup_dir} 恢复数据...")
-            if self.run_command("import.py", backup_dir):
+            if self.run_command("import", backup_dir):
                 messagebox.showinfo("成功", "数据恢复成功！")
             else:
                 messagebox.showerror("错误", "恢复失败，请查看日志详情。")
+
+
+class _LogStream:
+    def __init__(self, logger):
+        self.logger = logger
+        self.buffer = ""
+
+    def write(self, text):
+        self.buffer += text.replace("\r\n", "\n").replace("\r", "\n")
+        while "\n" in self.buffer:
+            line, self.buffer = self.buffer.split("\n", 1)
+            line = line.strip()
+            if line:
+                self.logger(line)
+
+    def flush(self):
+        line = self.buffer.strip()
+        if line:
+            self.logger(line)
+        self.buffer = ""
 
 if __name__ == "__main__":
     root = tk.Tk()
