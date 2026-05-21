@@ -13,9 +13,7 @@
 New Typeless accounts include a one-month free Pro trial. However, logging into multiple accounts on the same device triggers the error:
 `The number of users logged into this device has exceeded the limit.`
 
-Typeless identifies devices using a **Device ID** generated from hardware fingerprints. This tool reverse-engineers the application's encryption and local storage mechanisms to provide:
-
-1.  **Device Fingerprint Reset** — Makes the server treat your machine as a "brand new device," bypassing account limits.
+1.  **Device Fingerprint Reset** — 
 2.  **Full Data Migration** — Includes cloud-based personal dictionaries (API-level export/import), local history (SQLite migration), voice recordings (.ogg), and app settings.
 
 ## Requirements
