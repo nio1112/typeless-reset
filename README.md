@@ -1,6 +1,6 @@
 # typeless-reset-device
 
-**解除 Typeless (macOS / Windows) 设备登录限制 + 迁移个人数据到新账号**
+** Typeless (macOS / Windows) 重置设备标识 + 迁移个人数据到新账号**
 
 中文 | [English](README.en.md)
 
