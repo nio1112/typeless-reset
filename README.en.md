@@ -1,6 +1,6 @@
 # typeless-reset-device
 
-**Bypass Typeless (macOS / Windows) login limits + Migrate personal data to a new account**
+** Typeless (macOS / Windows) login limits + Migrate personal data to a new account**
 
 [中文](README.md) | English
 
