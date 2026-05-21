@@ -5,6 +5,7 @@
 中文 | [English](README.en.md)
 
 ---
+<img width="597" height="478" alt="企业微信截图_17793529807660" src="https://github.com/user-attachments/assets/c2b26f25-a506-43f8-8b8c-ea07cdc6c8fb" />
 
 ## 背景
 
